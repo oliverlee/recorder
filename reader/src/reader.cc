@@ -1,7 +1,7 @@
 #include <iostream>
 
 int main() {
-  std::cout << "hello world!\n";
+    std::cout << "hello world!\n";
 
-  return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
