@@ -52,5 +52,10 @@ endif()
 # Show this in ccmake
 option(BUILD_TESTS "Build tests" ON)
 
+if(BUILD_TESTS)
+    include(cmake/googletest.cmake)
+    enable_testing()
+endif()
+
 add_subdirectory(reader)
 add_subdirectory(logger)
