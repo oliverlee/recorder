@@ -11,6 +11,9 @@ macro(package_add_test testname)
         PROPERTIES FOLDER tests)
     target_include_directories(${testname}
         PUBLIC ${PROJECT_SOURCE_DIR}/include)
+    target_include_directories(${testname}
+        SYSTEM PUBLIC ${RECORDER_EXTERNAL_INCLUDE_DIR})
+
     target_compile_options(${testname}
         PRIVATE ${DEFAULT_CXX_OPTIONS})
 endmacro()
