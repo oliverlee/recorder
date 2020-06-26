@@ -21,12 +21,12 @@ Here's a simple usage example.
 
 Provide a port for the log server
 ```
-oliver@canopus:~/repos/recorder$ ./build/logger 12345 sensor_log
+oliver@canopus:~/repos/recorder$ ./build/logger/logger 12345 sensor_log
 ```
 
 Connect to the log server with a reader client
 ```
-oliver@canopus:~/repos/recorder$ <sensor-simulator-bin> | ./build/reader localhost 12345
+oliver@canopus:~/repos/recorder$ <sensor-simulator-bin> | ./build/reader/reader localhost 12345
 ```
 
 Pass the `--help` option to the binaries for more usage information.

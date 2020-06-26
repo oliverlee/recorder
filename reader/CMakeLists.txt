@@ -1,0 +1,8 @@
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
+
+add_executable(reader src/reader.cc)
+target_include_directories(reader PUBLIC include)
+target_compile_options(reader PRIVATE ${DEFAULT_CXX_OPTIONS})
