@@ -15,6 +15,15 @@ struct bad_message_data : public std::length_error {
     bad_message_data(const char* what_arg) : length_error(what_arg) {}
 };
 
+/// Byte size of fields in wire format
+namespace wire_size {
+constexpr uint32_t message_length = 4;
+constexpr uint32_t timestamp = 8;
+constexpr uint32_t nlen = 1;
+constexpr uint32_t temperature = 3;
+constexpr uint32_t humidity = 2;
+} // namespace wire_size
+
 /// Represents a sensor data message
 class Message {
   public:
@@ -48,5 +57,17 @@ class Message {
 
 /// @brief Writes a `Message` to an output stream
 auto operator<<(std::ostream& out, const Message& message) -> std::ostream&;
+
+/// @brief Decodes the message length from wire data
+/// @param wire_data A const buffer to decode, containing `wire_size::message_length` bytes
+/// @throw bad_message_data if the size of the provided buffer does not match message length
+/// @return The length of the message
+auto decode_message_length(asio::const_buffer wire_data) -> uint32_t;
+
+/// @brief Decodes the message payload length from wire data
+/// @param wire_data A const buffer to decode, containing `wire_size::message_length` bytes
+/// @throw bad_message_data if the size of the provided buffer does not match message length
+/// @return The length of the message payload, which excludes the message length field
+auto decode_message_payload_length(asio::const_buffer wire_data) -> uint32_t;
 
 } // namespace reader

@@ -5,17 +5,6 @@
 #include <cstdint>
 #include <iomanip>
 
-namespace {
-
-namespace wire_size {
-constexpr std::size_t timestamp = 8;
-constexpr std::size_t nlen = 1;
-constexpr std::size_t temperature = 3;
-constexpr std::size_t humidity = 2;
-} // namespace wire_size
-
-} // namespace
-
 namespace reader {
 
 template <class T>
@@ -131,5 +120,18 @@ auto operator<<(std::ostream& out, const Message& message) -> std::ostream& {
 
     return out;
 }
+
+auto decode_message_length(asio::const_buffer wire_data) -> uint32_t {
+    if (wire_data.size() != wire_size::message_length) {
+        throw bad_message_data{"`wire_data` size does not match message length size."};
+    }
+
+    return be32toh(aux::buffer_cast<uint32_t>(wire_data));
+}
+
+auto decode_message_payload_length(asio::const_buffer wire_data) -> uint32_t {
+    return decode_message_length(wire_data) - wire_size::message_length;
+}
+
 
 } // namespace reader

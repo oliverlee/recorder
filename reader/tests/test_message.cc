@@ -18,6 +18,8 @@ namespace fs = std::filesystem;
 namespace fs = std::experimental::filesystem;
 #endif
 
+namespace ws = reader::wire_size;
+
 namespace {
 const auto logfile = (fs::path{__FILE__}.parent_path() / "data/testdata.log").string();
 } // namespace
@@ -27,22 +29,19 @@ TEST(Message, FromToolGeneratedSensorData) {
     const auto stream_size = sensor_data.tellg();
     sensor_data.seekg(0);
 
-    const uint32_t message_length = [&sensor_data]() {
-        uint32_t temp_be;
-        // Just be lazy about type punning here
-        sensor_data.read(reinterpret_cast<char*>(&temp_be), sizeof(temp_be));
-        return be32toh(temp_be);
-    }();
+    auto header_buffer = std::array<char, ws::message_length>{};
+    sensor_data.read(header_buffer.data(), header_buffer.size());
+
+    const auto payload_length = reader::decode_message_payload_length(asio::buffer(header_buffer));
 
     // Ensure the recorded log contains at least a full message.
     // It is assumed the beginning of the file starts with message length.
-    ASSERT_GE(stream_size, message_length);
+    ASSERT_GE(stream_size, payload_length + ws::message_length);
 
-    const auto payload_length = message_length - 4;
-    auto data = std::vector<char>(payload_length);
-    sensor_data.read(data.data(), payload_length);
+    auto payload_buffer = std::vector<char>(payload_length);
+    sensor_data.read(payload_buffer.data(), payload_length);
 
-    const auto message = reader::Message{asio::buffer(data)};
+    const auto message = reader::Message{asio::buffer(payload_buffer)};
 
     EXPECT_EQ("testdata", message.name());
 }
@@ -64,12 +63,14 @@ class MessageWithDefaults : public ::testing::Test {
 };
 
 TEST_F(MessageWithDefaults, FromHandCreatedSensorData) {
-    std::array<std::byte, 8 + 1 + nlen + 3 + 2> data;
-    std::memcpy(&data[0], &timestamp_ms, 8);
-    std::memcpy(&data[8], &nlen, 1);
-    std::memcpy(&data[9], name, nlen);
-    std::memcpy(&data[9 + nlen], &temperature_centi_K, 3);
-    std::memcpy(&data[9 + nlen + 3], &humidity_deci_percent, 2);
+    std::array<std::byte, ws::timestamp + ws::nlen + nlen + ws::temperature + ws::humidity> data;
+    std::memcpy(&data[0], &timestamp_ms, ws::timestamp);
+    std::memcpy(&data[ws::timestamp], &nlen, ws::nlen);
+    std::memcpy(&data[ws::timestamp + ws::nlen], name, nlen);
+    std::memcpy(&data[ws::timestamp + ws::nlen + nlen], &temperature_centi_K, ws::temperature);
+    std::memcpy(&data[ws::timestamp + ws::nlen + nlen + ws::temperature],
+                &humidity_deci_percent,
+                ws::humidity);
 
     const auto message = reader::Message{asio::buffer(data)};
 
@@ -79,11 +80,11 @@ TEST_F(MessageWithDefaults, FromHandCreatedSensorData) {
     EXPECT_EQ(1.0f, *message.humidity());
 }
 TEST_F(MessageWithDefaults, HasTemperatureButNoHumidity) {
-    std::array<std::byte, 8 + 1 + nlen + 3> data;
-    std::memcpy(&data[0], &timestamp_ms, 8);
-    std::memcpy(&data[8], &nlen, 1);
-    std::memcpy(&data[9], name, nlen);
-    std::memcpy(&data[9 + nlen], &temperature_centi_K, 3);
+    std::array<std::byte, ws::timestamp + ws::nlen + nlen + ws::temperature> data;
+    std::memcpy(&data[0], &timestamp_ms, ws::timestamp);
+    std::memcpy(&data[ws::timestamp], &nlen, ws::nlen);
+    std::memcpy(&data[ws::timestamp + ws::nlen], name, nlen);
+    std::memcpy(&data[ws::timestamp + ws::nlen + nlen], &temperature_centi_K, ws::temperature);
 
     const auto message = reader::Message{asio::buffer(data)};
 
@@ -94,11 +95,11 @@ TEST_F(MessageWithDefaults, HasTemperatureButNoHumidity) {
 }
 
 TEST_F(MessageWithDefaults, HasHumidityButNoTemperature) {
-    std::array<std::byte, 8 + 1 + nlen + 2> data;
-    std::memcpy(&data[0], &timestamp_ms, 8);
-    std::memcpy(&data[8], &nlen, 1);
-    std::memcpy(&data[9], name, nlen);
-    std::memcpy(&data[9 + nlen], &humidity_deci_percent, 2);
+    std::array<std::byte, ws::timestamp + ws::nlen + nlen + ws::humidity> data;
+    std::memcpy(&data[0], &timestamp_ms, ws::timestamp);
+    std::memcpy(&data[ws::timestamp], &nlen, ws::nlen);
+    std::memcpy(&data[ws::timestamp + ws::nlen], name, nlen);
+    std::memcpy(&data[ws::timestamp + ws::nlen + nlen], &humidity_deci_percent, ws::humidity);
 
     const auto message = reader::Message{asio::buffer(data)};
 
@@ -109,30 +110,35 @@ TEST_F(MessageWithDefaults, HasHumidityButNoTemperature) {
 }
 
 TEST_F(MessageWithDefaults, BufferTooLarge) {
-    std::array<std::byte, 8 + 1 + nlen + 3 + 2 + 1> data;
-    std::memcpy(&data[0], &timestamp_ms, 8);
-    std::memcpy(&data[8], &nlen, 1);
-    std::memcpy(&data[9], name, nlen);
-    std::memcpy(&data[9 + nlen], &humidity_deci_percent, 2);
+    std::array<std::byte, ws::timestamp + ws::nlen + nlen + ws::temperature + ws::humidity + 1>
+        data;
+    std::memcpy(&data[0], &timestamp_ms, ws::timestamp);
+    std::memcpy(&data[ws::timestamp], &nlen, ws::nlen);
+    std::memcpy(&data[ws::timestamp + ws::nlen], name, nlen);
+    std::memcpy(&data[ws::timestamp + ws::nlen + nlen], &temperature_centi_K, ws::temperature);
+    std::memcpy(&data[ws::timestamp + ws::nlen + nlen + ws::temperature],
+                &humidity_deci_percent,
+                ws::humidity);
 
     EXPECT_THROW(reader::Message{asio::buffer(data)};, reader::bad_message_data);
 }
 
 TEST(Message, BufferTooSmall) {
-    std::array<std::byte, 8> data;
+    std::array<std::byte, ws::timestamp> data;
 
     EXPECT_THROW(reader::Message{asio::buffer(data)};, reader::bad_message_data);
 }
 
 TEST(Message, NLenTooLargeForBuffer) {
     const uint64_t timestamp_ms = htobe64(123);
-    const uint8_t nlen = 200;
+    constexpr uint8_t incorrect_nlen = 200;
+    constexpr uint8_t correct_nlen = 8;
     const char* name = "handdata";
 
-    std::array<std::byte, 8 + 1 + 8> data;
-    std::memcpy(&data[0], &timestamp_ms, 8);
-    std::memcpy(&data[8], &nlen, 1);
-    std::memcpy(&data[9], name, 8);
+    std::array<std::byte, ws::timestamp + ws::nlen + correct_nlen> data;
+    std::memcpy(&data[0], &timestamp_ms, ws::timestamp);
+    std::memcpy(&data[ws::timestamp], &incorrect_nlen, ws::nlen);
+    std::memcpy(&data[ws::timestamp + ws::nlen], name, correct_nlen);
 
     EXPECT_THROW(reader::Message{asio::buffer(data)};, reader::bad_message_data);
 }
