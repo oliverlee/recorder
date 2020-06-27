@@ -36,7 +36,7 @@ class Message {
     /// @throw bad_message_data if the decoded name has a size inconsistent with the message
     /// @throw bad_message_data if `wire_size` contains unused bytes after decoding
     /// @note The payload is not expected to contain the message length header
-    Message(asio::const_buffer wire_data);
+    explicit Message(asio::const_buffer wire_data);
 
     auto timestamp() const noexcept -> time_point_t { return timestamp_; }
     auto name() const noexcept -> const std::string& { return name_; }
