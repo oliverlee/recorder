@@ -1,7 +1,12 @@
 #include "gtest/gtest.h"
-#include <arpa/inet.h>
 #include <fstream>
 #include <string>
+
+#ifdef __APPLE__
+#include "compat/endian.h"
+#else
+#include <endian.h>
+#endif
 
 #ifdef __cpp_lib_filesystem
 #include <filesystem>
@@ -24,7 +29,7 @@ TEST(Message, FromSensorData) {
         uint32_t temp_be;
         // Just be lazy about type punning here
         sensor_data.read(reinterpret_cast<char*>(&temp_be), sizeof(temp_be));
-        return ntohl(temp_be);
+        return be32toh(temp_be);
     }();
 
     // Ensure the recorded log contains at least a full message.
