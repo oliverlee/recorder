@@ -119,18 +119,18 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    asio::io_context io_context;
+    auto io_context = asio::io_context{};
 
-    const auto port = [](auto s) {
+    const auto port = [&]() {
         auto ss = std::stringstream{};
-        ss << s;
+        ss << argv[1];
 
         unsigned short p;
         ss >> p;
         return p;
-    }(argv[1]);
+    }();
 
-    Server s{io_context, port};
+    auto server = Server{io_context, port};
 
     std::cerr << "Starting logger on port " << port << "\n";
 
