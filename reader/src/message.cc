@@ -94,8 +94,7 @@ auto Message::set_temperature(asio::const_buffer wire_data) -> void {
 
     auto temp_he = be32toh(temp_be);
 
-    // Temperature is only 3 bytes, not 4. So we need to shift if the machine is little endian.
-    // If the machine is big endian, then ntohl() will do nothing.
+    // Temperature is only 3 bytes, not 4. We need to shift if the machine is little endian.
     if (temp_he != temp_be) {
         temp_he >>= 8;
     }
