@@ -18,6 +18,6 @@ macro(recorder_add_executable name)
     )
 endmacro()
 
-recorder_add_executable(reader reader.cc message.cc)
+recorder_add_executable(reader reader.cc)
 
-recorder_add_executable(logger logger.cc)
+recorder_add_executable(logger logger.cc message.cc)

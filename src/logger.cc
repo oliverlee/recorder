@@ -1,11 +1,68 @@
 #include "compat/asio.h"
+#include "message.h"
 
 #include <iostream>
+#include <memory>
 #include <sstream>
 
 namespace {
 using asio::ip::tcp;
 
+/// An active connection to a sensor client streaming data
+class Session : public std::enable_shared_from_this<Session> {
+  public:
+    Session(tcp::socket socket) : socket_{std::move(socket)} {}
+
+    ~Session() { std::cerr << "Terminating connection\n"; }
+
+    auto start() -> void { async_read_header(); }
+
+  private:
+    static constexpr auto header_length = reader::wire_size::message_length;
+
+    ///@brief Reads a message header, then posts a task to read the message payload
+    auto async_read_header() -> void {
+        asio::async_read(socket_,
+                         streambuf_.prepare(header_length),
+                         [this, self = shared_from_this()](std::error_code ec, std::size_t) {
+                             if (!ec) {
+                                 streambuf_.commit(header_length);
+                                 const auto payload_length =
+                                     reader::decode_message_payload_length(streambuf_.data());
+                                 streambuf_.consume(header_length);
+                                 async_read_payload(payload_length);
+                             }
+                         });
+    }
+
+    ///@brief Reads a message payload, prints it to stdout, then posts a task to read the next
+    ///message header
+    ///@param length The message payload length
+    auto async_read_payload(std::size_t length) -> void {
+        asio::async_read(
+            socket_,
+            streambuf_.prepare(length),
+            [this, self = shared_from_this()](std::error_code ec, std::size_t bytes_transferred) {
+                if (!ec) {
+                    streambuf_.commit(bytes_transferred);
+                    const auto message = reader::Message{streambuf_.data()};
+                    self->streambuf_.consume(bytes_transferred);
+
+                    std::cout << message.as_json().dump(4) << "\n";
+
+                    self->async_read_header();
+                }
+            });
+    }
+
+    /// Socket to remote sensor client
+    tcp::socket socket_;
+
+    /// Internal storage for receiving encoded messages
+    asio::streambuf streambuf_;
+};
+
+/// A logging server
 class Server {
   public:
     Server(asio::io_context& io_context, unsigned short port)
@@ -14,9 +71,11 @@ class Server {
     }
 
   private:
-    void do_accept() {
+    auto do_accept() -> void {
         acceptor_.async_accept([this](std::error_code ec, tcp::socket socket) {
             if (!ec) {
+                std::cerr << "Established connection\n";
+                std::make_shared<Session>(std::move(socket))->start();
             }
 
             do_accept();
