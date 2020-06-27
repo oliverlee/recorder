@@ -1,5 +1,14 @@
 #pragma once
 
+#ifdef __APPLE__
+#if defined(__GNUC__) && !defined(__clang__)
+// Workaround for XCode
+// https://github.com/Homebrew/homebrew-core/issues/40676
+#include <cstdio>
+#include <cstdlib>
+#endif
+#endif
+
 #include "asio.hpp"
 #include "aux.h"
 
