@@ -57,5 +57,10 @@ if(BUILD_TESTS)
     enable_testing()
 endif()
 
+set(ASIO_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/asio/asio/include)
+set(RECORDER_EXTERNAL_INCLUDE_DIR ${ASIO_INCLUDE_DIR})
+
+find_package(Threads)
+
 add_subdirectory(reader)
 add_subdirectory(logger)
