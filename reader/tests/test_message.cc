@@ -1,6 +1,10 @@
+#include "message.h"
+
 #include "gtest/gtest.h"
+#include <cstddef>
 #include <fstream>
 #include <string>
+#include <vector>
 
 #ifdef __APPLE__
 #include "compat/endian.h"
@@ -35,4 +39,13 @@ TEST(Message, FromSensorData) {
     // Ensure the recorded log contains at least a full message.
     // It is assumed the beginning of the file starts with message length.
     ASSERT_GE(stream_size, message_length);
+
+    const auto payload_length = message_length - 4;
+    auto data = std::vector<char>(payload_length);
+    sensor_data.read(data.data(), payload_length);
+
+    const auto message = reader::Message{asio::buffer(data)};
+    std::cout << message << "\n";
+
+    EXPECT_EQ("testdata", message.name());
 }

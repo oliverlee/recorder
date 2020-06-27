@@ -1,3 +1,5 @@
+#include "message.h"
+
 #include <iostream>
 
 int main() {
