@@ -1,13 +1,9 @@
 #include "message.h"
 
+#include "compat/endian.h"
+
 #include <cstdint>
 #include <iomanip>
-
-#ifdef __APPLE__
-#include "compat/endian.h"
-#else
-#include <endian.h>
-#endif
 
 namespace {
 

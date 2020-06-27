@@ -1,3 +1,5 @@
+#include "compat/asio.h"
+#include "compat/endian.h"
 #include "message.h"
 
 #include "gtest/gtest.h"
@@ -5,12 +7,6 @@
 #include <fstream>
 #include <string>
 #include <vector>
-
-#ifdef __APPLE__
-#include "compat/endian.h"
-#else
-#include <endian.h>
-#endif
 
 #ifdef __cpp_lib_filesystem
 #include <filesystem>

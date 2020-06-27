@@ -1,6 +1,6 @@
 #pragma once
 
-#include "asio.hpp"
+#include "compat/asio.h"
 
 #include <cstring>
 #include <stdexcept>
