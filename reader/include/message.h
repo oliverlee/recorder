@@ -21,7 +21,7 @@ class Message {
     using time_point_t = std::chrono::time_point<clock_t>;
 
     // Constructs a message by decoding bytes in wire format
-    Message(asio::const_buffer data);
+    Message(asio::const_buffer wire_data);
 
     auto timestamp() const noexcept -> time_point_t { return timestamp_; }
     auto name() const noexcept -> const std::string& { return name_; }
@@ -29,25 +29,17 @@ class Message {
     auto humidity() const noexcept -> std::optional<float> { return humidity_; }
 
   private:
+    auto set_timestamp(asio::const_buffer wire_data) -> void;
+    auto set_name(asio::const_buffer wire_data) -> void;
+    auto set_temperature(asio::const_buffer wire_data) -> void;
+    auto set_humidity(asio::const_buffer wire_data) -> void;
+
     time_point_t timestamp_;
     std::string name_;
     std::optional<float> temperature_;
     std::optional<float> humidity_;
 };
 
-template <class T>
-std::ostream& operator<<(std::ostream& out, const std::optional<T>& t) {
-    out << "[";
-    if (t) {
-        out << *t;
-    }
-    out << "]";
-
-    return out;
-}
-
-std::ostream& operator<<(std::ostream& out, const Message::time_point_t& timestamp);
-
-std::ostream& operator<<(std::ostream& out, const Message& message);
+auto operator<<(std::ostream& out, const Message& message) -> std::ostream&;
 
 } // namespace reader

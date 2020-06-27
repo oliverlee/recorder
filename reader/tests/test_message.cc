@@ -3,8 +3,10 @@
 #include "message.h"
 
 #include "gtest/gtest.h"
+#include <array>
 #include <cstddef>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -20,7 +22,7 @@ namespace {
 const auto logfile = (fs::path{__FILE__}.parent_path() / "data/testdata.log").string();
 } // namespace
 
-TEST(Message, FromSensorData) {
+TEST(Message, FromToolGeneratedSensorData) {
     auto sensor_data = std::ifstream{logfile, std::ios::in | std::ios_base::binary | std::ios::ate};
     const auto stream_size = sensor_data.tellg();
     sensor_data.seekg(0);
@@ -44,4 +46,29 @@ TEST(Message, FromSensorData) {
     std::cout << message << "\n";
 
     EXPECT_EQ("testdata", message.name());
+}
+
+TEST(Message, FromHandCreatedSensorData) {
+    const uint64_t timestamp_ms = htobe64(123);
+    const uint8_t nlen = 8;
+    const char* name = "handdata";
+    const uint32_t temperature_centi_K = htobe32(static_cast<uint32_t>(27315) << 8);
+    const uint16_t humidity_deci_percent = htobe16(10);
+
+    std::array<std::byte, 8 + 1 + 8 + 3 + 2> data;
+    std::memcpy(&data[0], &timestamp_ms, 8);
+    std::memcpy(&data[8], &nlen, 1);
+    std::memcpy(&data[9], name, nlen);
+    std::memcpy(&data[9 + nlen], &temperature_centi_K, 3);
+    std::memcpy(&data[9 + nlen + 3], &humidity_deci_percent, 2);
+
+    const auto message = reader::Message{asio::buffer(data)};
+    std::cout << message << "\n";
+
+    const auto expected_timestamp = reader::Message::time_point_t{std::chrono::milliseconds{123}};
+
+    EXPECT_EQ(expected_timestamp, message.timestamp());
+    EXPECT_EQ("handdata", message.name());
+    EXPECT_EQ(0.0f, *message.temperature());
+    EXPECT_EQ(1.0f, *message.humidity());
 }
