@@ -11,10 +11,17 @@ using asio::ip::tcp;
 /// An active connection to a sensor client streaming data
 class Session : public std::enable_shared_from_this<Session> {
   public:
-    Session(tcp::socket socket) : socket_{std::move(socket)} {}
-
     ~Session() { std::cerr << "Terminating connection\n"; }
 
+  protected:
+    /// @brief Creates a Session from a socket
+    /// @param socket A socket connected to a sensor client
+    /// @note Objects of this class must be wrapped in the shared_ptr in order to extend the
+    ///       lifetime when posting async tasks. This constructor is made 'protected' so that this
+    ///       class can only be created with the free function `make_session`.
+    Session(tcp::socket socket) : socket_{std::move(socket)} {}
+
+    /// @brief Starts reading sensor data
     auto start() -> void { async_read_header(); }
 
   private:
@@ -36,7 +43,7 @@ class Session : public std::enable_shared_from_this<Session> {
     }
 
     ///@brief Reads a message payload, prints it to stdout, then posts a task to read the next
-    ///message header
+    ///       message header
     ///@param length The message payload length
     auto async_read_payload(std::size_t length) -> void {
         asio::async_read(
@@ -62,6 +69,19 @@ class Session : public std::enable_shared_from_this<Session> {
     asio::streambuf streambuf_;
 };
 
+/// @brief Constructs a session from a socket
+/// @param socket A socket connected to a sensor client
+/// @note The spawned Session manages its own lifetime
+auto make_session(tcp::socket socket) {
+    struct helper : Session {
+        helper(tcp::socket socket) : Session{std::move(socket)} {}
+
+        using Session::start;
+    };
+
+    std::make_shared<helper>(std::move(socket))->start();
+}
+
 /// A logging server
 class Server {
   public:
@@ -75,7 +95,7 @@ class Server {
         acceptor_.async_accept([this](std::error_code ec, tcp::socket socket) {
             if (!ec) {
                 std::cerr << "Established connection\n";
-                std::make_shared<Session>(std::move(socket))->start();
+                make_session(std::move(socket));
             }
 
             do_accept();
