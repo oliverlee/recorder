@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <iomanip>
+#include <sstream>
 
 namespace reader {
 
@@ -109,6 +110,10 @@ auto Message::set_humidity(asio::const_buffer wire_data) -> void {
     humidity_ = convert_unit(static_cast<float>(be16toh(aux::buffer_cast<uint16_t>(wire_data))));
 }
 
+auto Message::as_json() const -> nlohmann::json {
+    return *this;
+}
+
 auto operator<<(std::ostream& out, const Message& message) -> std::ostream& {
     out << "Message {\n";
     out << "  timestamp: " << message.timestamp() << "\n";
@@ -132,5 +137,22 @@ auto decode_message_payload_length(asio::const_buffer wire_data) -> uint32_t {
     return decode_message_length(wire_data) - wire_size::message_length;
 }
 
+void to_json(nlohmann::json& j, const Message& message) {
+    auto ss = std::stringstream{};
+    ss << message.timestamp();
+
+    j = nlohmann::json{
+        {"timestamp", ss.str()},
+        {"name", message.name()},
+    };
+
+    if (const auto t = message.temperature(); t) {
+        j["temperature"] = *t;
+    }
+
+    if (const auto h = message.humidity(); h) {
+        j["humidity"] = *h;
+    }
+}
 
 } // namespace reader

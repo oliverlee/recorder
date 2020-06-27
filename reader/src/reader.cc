@@ -42,7 +42,7 @@ auto Reader::decode_istream(std::istream& in) -> void {
     while (true) {
         const auto payload_length = decode_header(in);
         const auto message = decode_payload(in, payload_length);
-        std::cout << message << "\n";
+        std::cout << message.as_json().dump(4) << "\n";
     }
 }
 

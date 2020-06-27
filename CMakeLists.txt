@@ -58,7 +58,14 @@ if(BUILD_TESTS)
 endif()
 
 set(ASIO_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/asio/asio/include)
-set(RECORDER_EXTERNAL_INCLUDE_DIR ${ASIO_INCLUDE_DIR})
+
+# Manually set the include dir so we can ignore warnings in this header
+set(JSON_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/json/single_include)
+
+set(RECORDER_EXTERNAL_INCLUDE_DIR
+    ${ASIO_INCLUDE_DIR}
+    ${JSON_INCLUDE_DIR}
+)
 
 find_package(Threads)
 

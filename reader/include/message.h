@@ -4,6 +4,7 @@
 #include "compat/asio.h"
 
 #include <chrono>
+#include <nlohmann/json.hpp>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -43,6 +44,10 @@ class Message {
     auto temperature() const noexcept -> std::optional<float> { return temperature_; }
     auto humidity() const noexcept -> std::optional<float> { return humidity_; }
 
+    /// @brief Creates a JSON representation of Message
+    /// @return A JSON object
+    auto as_json() const -> nlohmann::json;
+
   private:
     auto set_timestamp(asio::const_buffer wire_data) -> void;
     auto set_name(asio::const_buffer wire_data) -> void;
@@ -69,5 +74,8 @@ auto decode_message_length(asio::const_buffer wire_data) -> uint32_t;
 /// @throw bad_message_data if the size of the provided buffer does not match message length
 /// @return The length of the message payload, which excludes the message length field
 auto decode_message_payload_length(asio::const_buffer wire_data) -> uint32_t;
+
+/// @brief Convert a Message to JSON
+void to_json(nlohmann::json& j, const Message& message);
 
 } // namespace reader
