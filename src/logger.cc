@@ -59,7 +59,7 @@ class Session : public std::enable_shared_from_this<Session> {
                     const auto message = reader::Message{streambuf_.data()};
                     self->streambuf_.consume(bytes_transferred);
 
-                    std::cout << message.as_json().dump(4) << "\n";
+                    std::cout << message.as_json().dump(4) << std::endl;
 
                     self->async_read_header();
                 }
