@@ -50,12 +50,12 @@ auto operator<<(std::ostream& out, const reader::Message::time_point_t& timestam
 Message::Message(asio::const_buffer wire_data) {
     constexpr auto minimum_message_size = wire_size::timestamp + wire_size::nlen;
     if (wire_data.size() < minimum_message_size) {
-        throw bad_message_data{"Message wire data buffer is smaller than expected."};
+        throw bad_message_data{"`wire_data` is smaller than the message minimum size."};
     };
 
     const auto timestamp_buffer = asio::buffer(wire_data, wire_size::timestamp);
 
-    std::size_t offset = timestamp_buffer.size();
+    auto offset = timestamp_buffer.size();
     const auto nlen = aux::buffer_cast<uint8_t>(asio::buffer(wire_data + offset, wire_size::nlen));
 
     offset += wire_size::nlen;
@@ -64,13 +64,15 @@ Message::Message(asio::const_buffer wire_data) {
     offset += name_buffer.size();
     const auto temperature_buffer = asio::buffer(wire_data + offset, wire_size::temperature);
 
-    offset += temperature_buffer.size();
+    if (temperature_buffer.size() == wire_size::temperature) {
+        offset += temperature_buffer.size();
+    }
     const auto humidity_buffer = asio::buffer(wire_data + offset);
 
     set_timestamp(timestamp_buffer);
 
     if (name_buffer.size() != nlen) {
-        throw bad_message_data{"`nlen` exceeds wire data buffer length."};
+        throw bad_message_data{"The value of `nlen` results in overrun of `wire_data` on decode."};
     }
     set_name(name_buffer);
 
@@ -80,6 +82,8 @@ Message::Message(asio::const_buffer wire_data) {
 
     if (humidity_buffer.size() == wire_size::humidity) {
         set_humidity(humidity_buffer);
+    } else if (const auto n = humidity_buffer.size(); n > 0 && n != wire_size::humidity) {
+        throw bad_message_data{"`wire_data` contains unused bytes after message decode."};
     }
 }
 
