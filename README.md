@@ -31,7 +31,10 @@ oliver@canopus:~/repos/recorder$ <sensor-simulator-bin> | ./build/bin/reader loc
 The sensor data is piped to the reader client, which then forwards data to the
 remote log server.
 
-You should see something like this:
+The server accepts connections from multiple clients simultaneously. Status
+messages are also displayed when clients connect or disconnect.
+
+If everything is working, you should see something like this:
 ```
 oliver@canopus:~/repos/recorder/build$ ./bin/logger 12345
 Starting logger on port 12345
@@ -66,7 +69,7 @@ Established connection with client 127.0.0.1:54676
 }
 ```
 
-To log to a file:
+To log to a file, redirect the output of the logger:
 ```
 oliver@canopus:~/repos/recorder$ ./build/bin/logger 12345 > sensor.log
 ```
