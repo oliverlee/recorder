@@ -11,7 +11,11 @@ using asio::ip::tcp;
 /// An active connection to a sensor client streaming data
 class Session : public std::enable_shared_from_this<Session> {
   public:
-    ~Session() { std::cerr << "Terminating connection\n"; }
+    ~Session() {
+        std::cerr << "Terminating connection with client "
+                  << socket_.remote_endpoint().address().to_string() << ":"
+                  << socket_.remote_endpoint().port() << "\n";
+    }
 
   protected:
     /// @brief Creates a Session from a socket
@@ -94,7 +98,10 @@ class Server {
     auto do_accept() -> void {
         acceptor_.async_accept([this](std::error_code ec, tcp::socket socket) {
             if (!ec) {
-                std::cerr << "Established connection\n";
+                std::cerr << "Established connection with client "
+                          << socket.remote_endpoint().address().to_string() << ":"
+                          << socket.remote_endpoint().port() << "\n";
+
                 make_session(std::move(socket));
             }
 
