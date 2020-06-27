@@ -67,7 +67,9 @@ set(RECORDER_EXTERNAL_INCLUDE_DIR
     ${JSON_INCLUDE_DIR}
 )
 
+set(RECORDER_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 find_package(Threads)
 
-add_subdirectory(reader)
-add_subdirectory(logger)
+add_subdirectory(src)
+add_subdirectory(tests)
