@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <string>
 
 namespace {
 using asio::ip::tcp;
@@ -11,11 +12,7 @@ using asio::ip::tcp;
 /// An active connection to a sensor client streaming data
 class Session : public std::enable_shared_from_this<Session> {
   public:
-    ~Session() {
-        std::cerr << "Terminating connection with client "
-                  << socket_.remote_endpoint().address().to_string() << ":"
-                  << socket_.remote_endpoint().port() << "\n";
-    }
+    ~Session() { std::cerr << status_prefix_ << "Terminating connection\n"; }
 
   protected:
     /// @brief Creates a Session from a socket
@@ -23,7 +20,15 @@ class Session : public std::enable_shared_from_this<Session> {
     /// @note Objects of this class must be wrapped in the shared_ptr in order to extend the
     ///       lifetime when posting async tasks. This constructor is made 'protected' so that this
     ///       class can only be created with the free function `make_session`.
-    Session(tcp::socket socket) : socket_{std::move(socket)} {}
+    Session(tcp::socket socket)
+        : socket_{std::move(socket)}, status_prefix_{[&]() {
+              auto ss = std::stringstream{};
+              ss << "[" << socket_.remote_endpoint().address().to_string() << ":"
+                 << socket_.remote_endpoint().port() << "] ";
+              return ss.str();
+          }()} {
+        std::cerr << status_prefix_ << "Established connection\n";
+    }
 
     /// @brief Starts reading sensor data
     auto start() -> void { async_read_header(); }
@@ -61,11 +66,14 @@ class Session : public std::enable_shared_from_this<Session> {
                         const auto message = reader::Message{streambuf_.data()};
                         std::cout << message.as_json().dump(4) << std::endl;
                     } catch (const reader::bad_message_data& ex) {
-                        std::cerr << "Unable to decode message: " << ex.what() << "\n";
+                        std::cerr << status_prefix_ << "Unable to decode message: " << ex.what()
+                                  << "\n";
                     } catch (const nlohmann::json::type_error& ex) {
-                        static constexpr decltype(nlohmann::json::type_error::id) invalid_utf8 = 316;
+                        static constexpr decltype(nlohmann::json::type_error::id) invalid_utf8 =
+                            316;
                         if (ex.id == invalid_utf8) {
-                            std::cerr << "Unable to decode string: " << ex.what() << "\n";
+                            std::cerr << status_prefix_ << "Unable to decode string: " << ex.what()
+                                      << "\n";
                         } else {
                             throw;
                         }
@@ -82,6 +90,9 @@ class Session : public std::enable_shared_from_this<Session> {
 
     /// Internal storage for receiving encoded messages
     asio::streambuf streambuf_;
+
+    /// Prefix for status messages containing client info
+    const std::string status_prefix_;
 };
 
 /// @brief Constructs a session from a socket
@@ -109,10 +120,6 @@ class Server {
     auto do_accept() -> void {
         acceptor_.async_accept([this](std::error_code ec, tcp::socket socket) {
             if (!ec) {
-                std::cerr << "Established connection with client "
-                          << socket.remote_endpoint().address().to_string() << ":"
-                          << socket.remote_endpoint().port() << "\n";
-
                 make_session(std::move(socket));
             }
 
