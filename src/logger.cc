@@ -11,17 +11,17 @@ namespace {
 using asio::ip::tcp;
 
 /// An active connection to a sensor client streaming data
-class Session : public std::enable_shared_from_this<Session> {
+class Connection : public std::enable_shared_from_this<Connection> {
   public:
-    ~Session() { std::cerr << status_prefix_ << "Terminating connection\n"; }
+    ~Connection() { std::cerr << status_prefix_ << "Terminating connection\n"; }
 
   protected:
-    /// @brief Creates a Session from a socket
+    /// @brief Creates a Connection from a socket
     /// @param socket A socket connected to a sensor client
     /// @note Objects of this class must be wrapped in the shared_ptr in order to extend the
     ///       lifetime when posting async tasks. This constructor is made 'protected' so that this
-    ///       class can only be created with the free function `make_session`.
-    Session(tcp::socket socket)
+    ///       class can only be created with the free function `make_connection`.
+    Connection(tcp::socket socket)
         : socket_{std::move(socket)}, status_prefix_{[&]() {
               auto ss = std::stringstream{};
               ss << "[" << socket_.remote_endpoint().address().to_string() << ":"
@@ -105,14 +105,14 @@ class Session : public std::enable_shared_from_this<Session> {
     const std::string status_prefix_;
 };
 
-/// @brief Constructs a session from a socket
+/// @brief Constructs a connection from a socket
 /// @param socket A socket connected to a sensor client
-/// @note The spawned Session manages its own lifetime
-auto make_session(tcp::socket socket) {
-    struct helper : Session {
-        helper(tcp::socket socket) : Session{std::move(socket)} {}
+/// @note The spawned Connection manages its own lifetime
+auto make_connection(tcp::socket socket) {
+    struct helper : Connection {
+        helper(tcp::socket socket) : Connection{std::move(socket)} {}
 
-        using Session::start;
+        using Connection::start;
     };
 
     std::make_shared<helper>(std::move(socket))->start();
@@ -130,7 +130,7 @@ class Server {
     auto do_accept() -> void {
         acceptor_.async_accept([this](std::error_code ec, tcp::socket socket) {
             if (!ec) {
-                make_session(std::move(socket));
+                make_connection(std::move(socket));
             }
 
             do_accept();
