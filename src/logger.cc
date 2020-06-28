@@ -56,11 +56,22 @@ class Session : public std::enable_shared_from_this<Session> {
             [this, self = shared_from_this()](std::error_code ec, std::size_t bytes_transferred) {
                 if (!ec) {
                     streambuf_.commit(bytes_transferred);
-                    const auto message = reader::Message{streambuf_.data()};
+
+                    try {
+                        const auto message = reader::Message{streambuf_.data()};
+                        std::cout << message.as_json().dump(4) << std::endl;
+                    } catch (const reader::bad_message_data& ex) {
+                        std::cerr << "Unable to decode message: " << ex.what() << "\n";
+                    } catch (const nlohmann::json::type_error& ex) {
+                        static constexpr decltype(nlohmann::json::type_error::id) invalid_utf8 = 316;
+                        if (ex.id == invalid_utf8) {
+                            std::cerr << "Unable to decode string: " << ex.what() << "\n";
+                        } else {
+                            throw;
+                        }
+                    }
+
                     self->streambuf_.consume(bytes_transferred);
-
-                    std::cout << message.as_json().dump(4) << std::endl;
-
                     self->async_read_header();
                 }
             });
