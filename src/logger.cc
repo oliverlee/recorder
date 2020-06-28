@@ -5,6 +5,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <string_view>
 
 namespace {
 using asio::ip::tcp;
@@ -36,7 +37,7 @@ class Session : public std::enable_shared_from_this<Session> {
   private:
     static constexpr auto header_length = reader::wire_size::message_length;
 
-    ///@brief Reads a message header, then posts a task to read the message payload
+    /// @brief Reads a message header, then posts a task to read the message payload
     auto async_read_header() -> void {
         asio::async_read(socket_,
                          streambuf_.prepare(header_length),
@@ -51,9 +52,9 @@ class Session : public std::enable_shared_from_this<Session> {
                          });
     }
 
-    ///@brief Reads a message payload, prints it to stdout, then posts a task to read the next
-    ///       message header
-    ///@param length The message payload length
+    /// @brief Reads a message payload, prints it to stdout, then posts a task to read the next
+    ///        message header
+    /// @param length The message payload length
     auto async_read_payload(std::size_t length) -> void {
         asio::async_read(
             socket_,
@@ -61,28 +62,37 @@ class Session : public std::enable_shared_from_this<Session> {
             [this, self = shared_from_this()](std::error_code ec, std::size_t bytes_transferred) {
                 if (!ec) {
                     streambuf_.commit(bytes_transferred);
-
-                    try {
-                        const auto message = reader::Message{streambuf_.data()};
-                        std::cout << message.as_json().dump(4) << std::endl;
-                    } catch (const reader::bad_message_data& ex) {
-                        std::cerr << status_prefix_ << "Unable to decode message: " << ex.what()
-                                  << "\n";
-                    } catch (const nlohmann::json::type_error& ex) {
-                        static constexpr decltype(nlohmann::json::type_error::id) invalid_utf8 =
-                            316;
-                        if (ex.id == invalid_utf8) {
-                            std::cerr << status_prefix_ << "Unable to decode string: " << ex.what()
-                                      << "\n";
-                        } else {
-                            throw;
-                        }
-                    }
-
+                    decode_message(streambuf_.data(), std::cout, std::cerr);
                     self->streambuf_.consume(bytes_transferred);
                     self->async_read_header();
                 }
             });
+    }
+
+    /// @brief Decode a message and write a JSON representation to out
+    /// @param data A buffer containing an encoded message
+    /// @param out An ostream to write to on success
+    /// @param err An ostream to write to on failure
+    /// @note Writes to err if decode fails
+    /// @note Unhandled exceptions are rethrown
+    auto decode_message(asio::const_buffer data, std::ostream& out, std::ostream& err) -> void {
+        static constexpr decltype(nlohmann::json::type_error::id) invalid_utf8 = 316;
+        static constexpr auto prefix = "[json.exception.type_error.316] ";
+        static constexpr auto prefix_view = std::string_view{prefix};
+
+        try {
+            const auto message = reader::Message{data};
+            out << message.as_json().dump(4) << std::endl;
+        } catch (const reader::bad_message_data& ex) {
+            err << status_prefix_ << "Unable to decode message: " << ex.what() << "\n";
+        } catch (const nlohmann::json::type_error& ex) {
+            if (ex.id == invalid_utf8) {
+                err << status_prefix_ << "Unable to decode string: "
+                    << std::string_view{ex.what()}.substr(prefix_view.size()) << "\n";
+            } else {
+                throw;
+            }
+        }
     }
 
     /// Socket to remote sensor client
