@@ -31,42 +31,62 @@ oliver@canopus:~/repos/recorder$ <sensor-simulator-bin> | ./build/bin/reader loc
 The sensor data is piped to the reader client, which then forwards data to the
 remote log server.
 
-You should see something like this:
+The server accepts connections from multiple clients simultaneously. Status
+messages are also displayed when clients connect or disconnect.
+
+Here's an example of logger output with two connections:
 ```
-oliver@canopus:~/repos/recorder/build$ ./bin/logger 12345
+oliver@canopus:~/repos/recorder$ ./build/bin/logger 12345
 Starting logger on port 12345
-Established connection with client 127.0.0.1:54673
+[127.0.0.1:56184] Established connection
 {
-    "humidity": 81.4000015258789,
-    "name": "a5350d06-d165-44a7-badf-27149714e1d4",
-    "timestamp": "2020-06-27T20:46:21.837+0200"
-}
-Established connection with client 127.0.0.1:54676
-{
-    "humidity": 58.70000076293945,
-    "name": "5c5b23dc-c99e-4ba2-9009-72d92652f1b5",
-    "temperature": 4941.89990234375,
-    "timestamp": "2020-06-27T20:46:26.751+0200"
+    "humidity": 80.80000305175781,
+    "name": "e74bb50f-5a1e-4742-8827-20bc80a17297",
+    "temperature": 3161.130126953125,
+    "timestamp": "2020-06-28T16:51:50.240+0200"
 }
 {
-    "humidity": 12.100000381469727,
-    "name": "a5350d06-d165-44a7-badf-27149714e1d4",
-    "temperature": 2117.440185546875,
-    "timestamp": "2020-06-27T20:46:25.287+0200"
+    "humidity": 67.9000015258789,
+    "name": "e74bb50f-5a1e-4742-8827-20bc80a17297",
+    "temperature": 2731.8701171875,
+    "timestamp": "2020-06-28T16:51:54.732+0200"
 }
 {
-    "name": "5c5b23dc-c99e-4ba2-9009-72d92652f1b5",
-    "temperature": 2447.10009765625,
-    "timestamp": "2020-06-27T20:46:28.843+0200"
+    "name": "e74bb50f-5a1e-4742-8827-20bc80a17297",
+    "timestamp": "2020-06-28T16:51:59.570+0200"
+}
+[127.0.0.1:56185] Established connection
+{
+    "humidity": 17.799999237060547,
+    "name": "héllö",
+    "timestamp": "2020-06-28T16:52:04.006+0200"
 }
 {
-    "name": "a5350d06-d165-44a7-badf-27149714e1d4",
-    "temperature": 2505.440185546875,
-    "timestamp": "2020-06-27T20:46:30.222+0200"
+    "name": "e74bb50f-5a1e-4742-8827-20bc80a17297",
+    "temperature": 3479.840087890625,
+    "timestamp": "2020-06-28T16:52:03.403+0200"
+}
+{
+    "name": "héllö",
+    "temperature": 3440.93017578125,
+    "timestamp": "2020-06-28T16:52:05.613+0200"
+}
+{
+    "humidity": 85.9000015258789,
+    "name": "e74bb50f-5a1e-4742-8827-20bc80a17297",
+    "temperature": 2462.35009765625,
+    "timestamp": "2020-06-28T16:52:05.668+0200"
+}
+[127.0.0.1:56184] Terminating connection
+{
+    "humidity": 5.5,
+    "name": "héllö",
+    "temperature": 732.1300048828125,
+    "timestamp": "2020-06-28T16:52:09.358+0200"
 }
 ```
 
-To log to a file:
+To log to a file, redirect the output of the logger:
 ```
 oliver@canopus:~/repos/recorder$ ./build/bin/logger 12345 > sensor.log
 ```

@@ -55,11 +55,11 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    asio::io_context io_context;
+    auto io_context = asio::io_context{};
 
-    asio::posix::stream_descriptor istream{io_context, STDIN_FILENO};
+    auto istream = asio::posix::stream_descriptor{io_context, STDIN_FILENO};
 
-    asio::ip::tcp::socket socket{io_context};
+    auto socket = asio::ip::tcp::socket{io_context};
     try {
         asio::connect(socket, asio::ip::tcp::resolver{io_context}.resolve(argv[1], argv[2]));
     } catch (const std::system_error& ex) {
