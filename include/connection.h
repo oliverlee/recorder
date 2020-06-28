@@ -24,22 +24,29 @@ namespace logger {
 template <class AsyncReadSocketStream>
 class Connection : public std::enable_shared_from_this<Connection<AsyncReadSocketStream>> {
   public:
-    ~Connection() { std::cerr << status_prefix_ << "Terminating connection\n"; }
+    ~Connection() { err_ << status_prefix_ << "Terminating connection\n"; }
 
   protected:
     /// @brief Creates a Connection from a socket
     /// @param socket A socket connected to a sensor client
+    /// @param out An ostream to write to on success
+    /// @param err An ostream to write to on failure
+    /// @note The Connection manages its own lifetime
+    /// @note `out` and `err` must be guaranteed to exist for the lifetime of the Connection
     /// @note Objects of this class must be wrapped in the shared_ptr in order to extend the
     ///       lifetime when posting async tasks. This constructor is made 'protected' so that this
     ///       class can only be created with the free function `make_connection`.
-    Connection(AsyncReadSocketStream socket)
-        : socket_{std::move(socket)}, status_prefix_{[&]() {
+    Connection(AsyncReadSocketStream socket, std::ostream& out, std::ostream& err)
+        : socket_{std::move(socket)},
+          status_prefix_{[&]() {
               auto ss = std::stringstream{};
               ss << "[" << socket_.remote_endpoint().address().to_string() << ":"
                  << socket_.remote_endpoint().port() << "] ";
               return ss.str();
-          }()} {
-        std::cerr << status_prefix_ << "Established connection\n";
+          }()},
+          out_{out},
+          err_{err} {
+        err_ << status_prefix_ << "Established connection\n";
     }
 
     /// @brief Starts reading sensor data
@@ -73,7 +80,7 @@ class Connection : public std::enable_shared_from_this<Connection<AsyncReadSocke
                                                                  std::size_t bytes_transferred) {
                              if (!ec) {
                                  streambuf_.commit(bytes_transferred);
-                                 decode_message(streambuf_.data(), std::cout, std::cerr);
+                                 decode_message(streambuf_.data());
                                  streambuf_.consume(bytes_transferred);
                                  async_read_header();
                              }
@@ -82,24 +89,22 @@ class Connection : public std::enable_shared_from_this<Connection<AsyncReadSocke
 
     /// @brief Decode a message and write a JSON representation to out
     /// @param data A buffer containing an encoded message
-    /// @param out An ostream to write to on success
-    /// @param err An ostream to write to on failure
     /// @note Writes to err if decode fails
     /// @note Unhandled exceptions are rethrown
-    auto decode_message(asio::const_buffer data, std::ostream& out, std::ostream& err) -> void {
+    auto decode_message(asio::const_buffer data) -> void {
         static constexpr int invalid_utf8 = 316;
         static constexpr auto prefix = "[json.exception.type_error.316] ";
         static constexpr auto prefix_view = std::string_view{prefix};
 
         try {
             const auto message = reader::Message{data};
-            out << message.as_json().dump(4) << std::endl;
+            out_ << message.as_json().dump(4) << std::endl;
         } catch (const reader::bad_message_data& ex) {
-            err << status_prefix_ << "Unable to decode message: " << ex.what() << "\n";
+            err_ << status_prefix_ << "Unable to decode message: " << ex.what() << "\n";
         } catch (const nlohmann::json::type_error& ex) {
             if (ex.id == invalid_utf8) {
-                err << status_prefix_ << "Unable to decode string: "
-                    << std::string_view{ex.what()}.substr(prefix_view.size()) << "\n";
+                err_ << status_prefix_ << "Unable to decode string: "
+                     << std::string_view{ex.what()}.substr(prefix_view.size()) << "\n";
             } else {
                 throw;
             }
@@ -114,24 +119,33 @@ class Connection : public std::enable_shared_from_this<Connection<AsyncReadSocke
 
     /// Prefix for status messages containing client info
     const std::string status_prefix_;
+
+    /// Output stream to write sensor messages to
+    std::ostream& out_;
+
+    /// Output stream to write status/error messages to
+    std::ostream& err_;
 };
 
 /// @brief Constructs a connection from a socket
 /// @tparam AsyncReadSocketStream A type that extends asio::AsyncReadStream
 /// @param socket A socket connected to a sensor client
+/// @param out An ostream to write to on success
+/// @param err An ostream to write to on failure
 /// @note The spawned Connection manages its own lifetime
+/// @note `out` and `err` must be guaranteed to exist for the lifetime of the Connection
 /// @see Connection
 /// @see https://think-async.com/Asio/asio-1.16.1/doc/asio/reference/AsyncReadStream.html
 template <class AsyncReadSocketStream>
-auto make_connection(AsyncReadSocketStream socket) {
+auto make_connection(AsyncReadSocketStream socket, std::ostream& out, std::ostream& err) {
     struct helper : Connection<AsyncReadSocketStream> {
-        helper(AsyncReadSocketStream socket)
-            : Connection<AsyncReadSocketStream>{std::move(socket)} {}
+        helper(AsyncReadSocketStream socket, std::ostream& out, std::ostream& err)
+            : Connection<AsyncReadSocketStream>{std::move(socket), out, err} {}
 
         using Connection<AsyncReadSocketStream>::start;
     };
 
-    std::make_shared<helper>(std::move(socket))->start();
+    std::make_shared<helper>(std::move(socket), out, err)->start();
 }
 
 } // namespace logger

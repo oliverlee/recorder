@@ -18,7 +18,7 @@ class Server {
     auto do_accept() -> void {
         acceptor_.async_accept([this](std::error_code ec, tcp::socket socket) {
             if (!ec) {
-                logger::make_connection(std::move(socket));
+                logger::make_connection(std::move(socket), std::cout, std::cerr);
             }
 
             do_accept();
