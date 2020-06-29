@@ -10,10 +10,17 @@ JSON. [Google Test](https://github.com/google/googletest) is used for testing.
 
 It has been tested with GCC 7 and Clang 7 on Ubuntu 18.04
 
+To build
 ```
 oliver@canopus:~/repos/recorder$ git submodule update --init --recursive --recommend-shallow
 oliver@canopus:~/repos/recorder$ cmake -S . -B build
 oliver@canopus:~/repos/recorder$ cmake --build build
+```
+
+To run tests
+```
+oliver@canopus:~/repos/recorder$ cd build
+oliver@canopus:~/repos/recorder/build$ GTEST_COLOR=1 ctest -V
 ```
 
 ## Usage

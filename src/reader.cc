@@ -1,5 +1,6 @@
 #include "compat/asio.h"
 
+#include <chrono>
 #include <cstdint>
 #include <iostream>
 #include <system_error>
@@ -71,6 +72,10 @@ int main(int argc, char* argv[]) {
     }
 
     auto client = Client{std::move(socket), std::move(istream)};
+
+    while (io_context.run_for(std::chrono::seconds{5}) == 0) {
+        std::cerr << "No data has been received. Please check your configuration.\n";
+    }
 
     io_context.run();
 
