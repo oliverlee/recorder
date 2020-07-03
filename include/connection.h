@@ -1,5 +1,6 @@
 #pragma once
 
+#include "async/future.hpp"
 #include "compat/asio.h"
 #include "message.h"
 
