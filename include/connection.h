@@ -11,6 +11,8 @@
 
 namespace logger {
 
+#include <asio/yield.hpp>
+
 /// An active connection to a sensor client streaming data
 /// @tparam AsyncReadSocketStream A type that extends asio::AsyncReadStream
 ///
@@ -50,10 +52,65 @@ class Connection : public std::enable_shared_from_this<Connection<AsyncReadSocke
     }
 
     /// @brief Starts reading sensor data
-    auto start() -> void { async_read_header(); }
+    // auto start() -> void { async_read_header(); }
+    auto start() -> void { async_display_message(); }
 
   private:
     static constexpr auto header_length = reader::wire_size::message_length;
+
+    auto async_display_message() -> void {
+        async_receive_message(
+            [this, self = this->shared_from_this()](const std::error_code& ec,
+                                                    const std::optional<reader::Message>& message) {
+                if (!ec && message) {
+                    out_ << message->as_json().dump(4) << std::endl;
+                    async_display_message();
+                }
+            });
+    }
+
+    template <class CompletionToken>
+    auto async_receive_message(CompletionToken&& token) {
+        // handler signature must have parameters that are default constructible
+        // TODO: replace optional with expected/outcome so we can handle exceptions thrown on
+        // Message construction
+        return asio::async_compose<CompletionToken,
+                                   void(const std::error_code&,
+                                        const std::optional<reader::Message>&)>(
+            [conn = this, coro = asio::coroutine()](auto& self, // `self` refers to the handler
+                                                    const std::error_code& error = {},
+                                                    std::size_t bytes_transferred = 0) mutable {
+                reenter(coro) {
+                    assert(conn->streambuf_.size() == 0);
+                    yield asio::async_read(
+                        conn->socket_, conn->streambuf_.prepare(header_length), std::move(self));
+                    if (error) {
+                        return self.complete(error, {});
+                    }
+
+                    yield {
+                        conn->streambuf_.commit(header_length);
+                        const auto payload_length =
+                            reader::decode_message_payload_length(conn->streambuf_.data());
+                        conn->streambuf_.consume(header_length);
+                        asio::async_read(conn->socket_,
+                                         conn->streambuf_.prepare(payload_length),
+                                         std::move(self));
+                    }
+                    conn->streambuf_.commit(bytes_transferred);
+
+                    if (error) {
+                        return self.complete(error, {});
+                    }
+
+                    const auto message =
+                        std::optional<reader::Message>{std::in_place, conn->streambuf_.data()};
+                    conn->streambuf_.consume(bytes_transferred);
+                    self.complete(error, message);
+                }
+            },
+            token);
+    }
 
     /// @brief Reads a message header, then posts a task to read the message payload
     auto async_read_header() -> void {
@@ -126,6 +183,8 @@ class Connection : public std::enable_shared_from_this<Connection<AsyncReadSocke
     /// Output stream to write status/error messages to
     std::ostream& err_;
 };
+
+#include <asio/unyield.hpp>
 
 /// @brief Constructs a connection from a socket
 /// @tparam AsyncReadSocketStream A type that extends asio::AsyncReadStream
