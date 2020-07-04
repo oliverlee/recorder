@@ -4,6 +4,7 @@
 #include "message.h"
 #include "nonstd/expected.hpp"
 
+#include <exception>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -58,26 +59,47 @@ class Connection : public std::enable_shared_from_this<Connection<AsyncReadSocke
 
   private:
     static constexpr auto header_length = reader::wire_size::message_length;
+    using expected_type = nonstd::expected<reader::Message, std::exception_ptr>;
 
     auto async_display_message() -> void {
-        async_receive_message(
-            [this, self = this->shared_from_this()](const std::error_code& ec,
-                                                    const std::optional<reader::Message>& message) {
-                if (!ec && message) {
+        async_receive_message([this, self = this->shared_from_this()](
+                                  const std::error_code& ec, const expected_type& message) {
+            if (ec) {
+                err_ << status_prefix_ << ec << std::endl;
+                return;
+            }
+
+            if (message) {
+                try {
                     out_ << message->as_json().dump(4) << std::endl;
-                    async_display_message();
+                } catch (const nlohmann::json::type_error& ex) {
+                    static constexpr int invalid_utf8 = 316;
+                    static constexpr auto prefix = "[json.exception.type_error.316] ";
+                    static constexpr auto prefix_view = std::string_view{prefix};
+
+                    if (ex.id != invalid_utf8) {
+                        throw;
+                    }
+                    err_ << status_prefix_ << "Unable to decode string: "
+                         << std::string_view{ex.what()}.substr(prefix_view.size()) << "\n";
                 }
-            });
+            } else {
+                try {
+                    std::rethrow_exception(message.error());
+                } catch (const reader::bad_message_data& ex) {
+                    err_ << status_prefix_ << "Unable to decode message: " << ex.what() << "\n";
+                }
+            }
+
+            async_display_message();
+        });
     }
 
     template <class CompletionToken>
     auto async_receive_message(CompletionToken&& token) {
         // handler signature must have parameters that are default constructible
-        // TODO: replace optional with expected/outcome so we can handle exceptions thrown on
-        // Message construction
         return asio::async_compose<CompletionToken,
-                                   void(const std::error_code&,
-                                        const std::optional<reader::Message>&)>(
+                                   void(const std::error_code&, const expected_type&)>(
             [conn = this, coro = asio::coroutine()](auto& self, // `self` refers to the handler
                                                     const std::error_code& error = {},
                                                     std::size_t bytes_transferred = 0) mutable {
@@ -86,7 +108,8 @@ class Connection : public std::enable_shared_from_this<Connection<AsyncReadSocke
                     yield asio::async_read(
                         conn->socket_, conn->streambuf_.prepare(header_length), std::move(self));
                     if (error) {
-                        return self.complete(error, {});
+                        return self.complete(error,
+                                             nonstd::make_unexpected<std::exception_ptr>({}));
                     }
 
                     yield {
@@ -101,13 +124,20 @@ class Connection : public std::enable_shared_from_this<Connection<AsyncReadSocke
                     conn->streambuf_.commit(bytes_transferred);
 
                     if (error) {
-                        return self.complete(error, {});
+                        return self.complete(error,
+                                             nonstd::make_unexpected<std::exception_ptr>({}));
                     }
 
-                    const auto message =
-                        std::optional<reader::Message>{std::in_place, conn->streambuf_.data()};
-                    conn->streambuf_.consume(bytes_transferred);
-                    self.complete(error, message);
+                    auto message = [](auto buffer) noexcept->expected_type {
+                        try {
+                            return reader::Message{buffer};
+                        } catch (...) {
+                            return nonstd::make_unexpected(std::current_exception());
+                        }
+                    }
+                    (conn->streambuf_.data());
+                    conn->streambuf_.consume(conn->streambuf_.size());
+                    self.complete(error, std::move(message));
                 }
             },
             token);
