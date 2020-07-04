@@ -2,6 +2,7 @@
 
 #include "compat/asio.h"
 #include "message.h"
+#include "nonstd/expected.hpp"
 
 #include <iostream>
 #include <memory>

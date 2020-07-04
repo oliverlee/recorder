@@ -62,9 +62,12 @@ set(ASIO_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/asio/asio/include)
 # Manually set the include dir so we can ignore warnings in this header
 set(JSON_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/json/single_include)
 
+set(EXPECTED_LITE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/expected-lite/include)
+
 set(RECORDER_EXTERNAL_INCLUDE_DIR
     ${ASIO_INCLUDE_DIR}
     ${JSON_INCLUDE_DIR}
+    ${EXPECTED_LITE_INCLUDE_DIR}
 )
 
 set(RECORDER_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
