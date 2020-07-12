@@ -1,8 +1,14 @@
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/googletest" "external/googletest")
 
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8)
-        set(libfs stdc++fs)
+    if (UNIX)
+        if (APPLE)
+            if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
+                set(libfs c++fs)
+            endif()
+        else()
+            set(libfs stdc++fs)
+        endif()
     endif()
 else()
     # GCC
