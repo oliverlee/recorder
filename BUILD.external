@@ -1,0 +1,21 @@
+cc_library (
+    name = "asio",
+    textual_hdrs = glob(["external/asio/asio/include/**/*"]),
+    includes = ["external/asio/asio/include"],
+    linkopts = ["-pthread"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library (
+    name = "expected-lite",
+    textual_hdrs = glob(["external/expected-lite/include/**/*"]),
+    includes = ["external/expected-lite/include"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library (
+    name = "json",
+    textual_hdrs = glob(["external/json/single_include/**/*"]),
+    includes = ["external/json/single_include"],
+    visibility = ["//visibility:public"],
+)
