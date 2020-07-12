@@ -2,7 +2,9 @@
 
 #include "compat/asio.h"
 #include "message.h"
+#include "nonstd/expected.hpp"
 
+#include <exception>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -50,66 +52,101 @@ class Connection : public std::enable_shared_from_this<Connection<AsyncReadSocke
     }
 
     /// @brief Starts reading sensor data
-    auto start() -> void { async_read_header(); }
+    auto start() -> void { display_message(); }
 
   private:
     static constexpr auto header_length = reader::wire_size::message_length;
+    using expected_type = nonstd::expected<reader::Message, std::exception_ptr>;
 
-    /// @brief Reads a message header, then posts a task to read the message payload
-    auto async_read_header() -> void {
-        asio::async_read(socket_,
-                         streambuf_.prepare(header_length),
-                         [this, self = this->shared_from_this()](std::error_code ec, std::size_t) {
-                             if (!ec) {
-                                 streambuf_.commit(header_length);
-                                 const auto payload_length =
-                                     reader::decode_message_payload_length(streambuf_.data());
-                                 streambuf_.consume(header_length);
-                                 async_read_payload(payload_length);
-                             }
-                         });
-    }
-
-    /// @brief Reads a message payload, prints it to stdout, then posts a task to read the next
-    ///        message header
-    /// @param length The message payload length
-    auto async_read_payload(std::size_t length) -> void {
-        asio::async_read(socket_,
-                         streambuf_.prepare(length),
-                         [this, self = this->shared_from_this()](std::error_code ec,
-                                                                 std::size_t bytes_transferred) {
-                             if (!ec) {
-                                 streambuf_.commit(bytes_transferred);
-                                 decode_message(streambuf_.data());
-                                 streambuf_.consume(bytes_transferred);
-                                 async_read_header();
-                             }
-                         });
-    }
-
-    /// @brief Decode a message and write a JSON representation to out
-    /// @param data A buffer containing an encoded message
-    /// @note Writes to err if decode fails
-    /// @note Unhandled exceptions are rethrown
-    auto decode_message(asio::const_buffer data) -> void {
-        static constexpr int invalid_utf8 = 316;
-        static constexpr auto prefix = "[json.exception.type_error.316] ";
-        static constexpr auto prefix_view = std::string_view{prefix};
-
-        try {
-            const auto message = reader::Message{data};
-            out_ << message.as_json().dump(4) << std::endl;
-        } catch (const reader::bad_message_data& ex) {
-            err_ << status_prefix_ << "Unable to decode message: " << ex.what() << "\n";
-        } catch (const nlohmann::json::type_error& ex) {
-            if (ex.id == invalid_utf8) {
-                err_ << status_prefix_ << "Unable to decode string: "
-                     << std::string_view{ex.what()}.substr(prefix_view.size()) << "\n";
-            } else {
-                throw;
+    /// @brief Reads a message header and writes it to `out_`
+    auto display_message() -> void {
+        async_receive_message([this, self = this->shared_from_this()](
+                                  const std::error_code& ec, const expected_type& message) {
+            if (ec) {
+                err_ << status_prefix_ << ec << std::endl;
+                return;
             }
-        }
+
+            if (message) {
+                try {
+                    out_ << message->as_json().dump(4) << std::endl;
+                } catch (const nlohmann::json::type_error& ex) {
+                    static constexpr int invalid_utf8 = 316;
+                    static constexpr auto prefix = "[json.exception.type_error.316] ";
+                    static constexpr auto prefix_view = std::string_view{prefix};
+
+                    if (ex.id != invalid_utf8) {
+                        throw;
+                    }
+                    err_ << status_prefix_ << "Unable to decode string: "
+                         << std::string_view{ex.what()}.substr(prefix_view.size()) << "\n";
+                }
+            } else {
+                try {
+                    std::rethrow_exception(message.error());
+                } catch (const reader::bad_message_data& ex) {
+                    err_ << status_prefix_ << "Unable to decode message: " << ex.what() << "\n";
+                }
+            }
+
+            display_message();
+        });
     }
+
+#include <asio/yield.hpp>
+
+    /// @brief Reads a message
+    /// @param token A token that determines the handler invoked when the asynchronous operation is
+    /// completed
+    ///
+    /// Reads a message header followed by a message payload.
+    template <class CompletionToken>
+    auto async_receive_message(CompletionToken&& token) {
+        return asio::async_compose<CompletionToken,
+                                   void(const std::error_code&, const expected_type&)>(
+            [conn = this, coro = asio::coroutine()](auto& self,
+                                                    const std::error_code& error = {},
+                                                    std::size_t bytes_transferred = 0) mutable {
+                reenter(coro) {
+                    assert(conn->streambuf_.size() == 0);
+                    yield asio::async_read(
+                        conn->socket_, conn->streambuf_.prepare(header_length), std::move(self));
+                    if (error) {
+                        return self.complete(error,
+                                             nonstd::make_unexpected<std::exception_ptr>({}));
+                    }
+                    conn->streambuf_.commit(header_length);
+
+                    yield {
+                        const auto payload_length =
+                            reader::decode_message_payload_length(conn->streambuf_.data());
+                        conn->streambuf_.consume(header_length);
+                        asio::async_read(conn->socket_,
+                                         conn->streambuf_.prepare(payload_length),
+                                         std::move(self));
+                    }
+                    if (error) {
+                        return self.complete(error,
+                                             nonstd::make_unexpected<std::exception_ptr>({}));
+                    }
+                    conn->streambuf_.commit(bytes_transferred);
+
+                    auto message = [](auto buffer) noexcept->expected_type {
+                        try {
+                            return reader::Message{buffer};
+                        } catch (...) {
+                            return nonstd::make_unexpected(std::current_exception());
+                        }
+                    }
+                    (conn->streambuf_.data());
+                    conn->streambuf_.consume(conn->streambuf_.size());
+                    self.complete(error, std::move(message));
+                }
+            },
+            token);
+    }
+
+#include <asio/unyield.hpp>
 
     /// Socket to remote sensor client
     AsyncReadSocketStream socket_;
