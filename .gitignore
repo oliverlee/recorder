@@ -1,2 +1,5 @@
 # Default build directories
-/build*
+/build-*
+
+# Bazel directories
+/bazel-*

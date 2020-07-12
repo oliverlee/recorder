@@ -1,0 +1,11 @@
+build \
+--cxxopt='-std=c++17' \
+--verbose_failures  \
+--show_result='10'
+
+test \
+--keep_going  \
+--build_tests_only  \
+--test_output=errors \
+--test_summary=detailed  \
+--action_env='GTEST_COLOR=1'

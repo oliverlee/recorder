@@ -26,6 +26,8 @@ const auto logfile = (fs::path{__FILE__}.parent_path() / "data/testdata.log").st
 
 TEST(Message, FromToolGeneratedSensorData) {
     auto sensor_data = std::ifstream{logfile, std::ios::in | std::ios_base::binary | std::ios::ate};
+    ASSERT_TRUE(sensor_data.is_open());
+
     const auto stream_size = sensor_data.tellg();
     sensor_data.seekg(0);
 
