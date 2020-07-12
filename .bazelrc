@@ -1,16 +1,11 @@
 build \
 --cxxopt='-std=c++17' \
---cxxopt='-Werror' \
---cxxopt='-Wall' \
---cxxopt='-Wextra' \
---cxxopt='-Wnon-virtual-dtor' \
---cxxopt='-Wold-style-cast' \
---cxxopt='-Wcast-align' \
---cxxopt='-Wunused' \
---cxxopt='-Woverloaded-virtual' \
---cxxopt='-Wpedantic' \
---cxxopt='-Wconversion' \
---cxxopt='-Wsign-conversion' \
---cxxopt='-Wdouble-promotion' \
---cxxopt='-Wformat=2' \
+--verbose_failures  \
+--show_result='10'
 
+test \
+--keep_going  \
+--build_tests_only  \
+--test_output=errors \
+--test_summary=detailed  \
+--action_env='GTEST_COLOR=1'

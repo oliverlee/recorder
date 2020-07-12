@@ -26,9 +26,19 @@ oliver@canopus:~/repos/recorder/build-cmake$ GTEST_COLOR=1 ctest -V
 ```
 
 ### With Bazel
-To build
+To build all
 ```
-oliver@canopus:~/repos/recorder$ bazel build ...
+oliver@canopus:~/repos/recorder$ bazel build //...
+```
+
+To build binaries and exclude tests
+```
+oliver@canopus:~/repos/recorder$ bazel build -- //... -//tests/...
+```
+
+To run tests
+```
+oliver@canopus:~/repos/recorder$ bazel test //...
 ```
 
 ## Usage
