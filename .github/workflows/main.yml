@@ -47,3 +47,18 @@ jobs:
         cmake --build build-cmake
         cd build-cmake && GTEST_COLOR=1 ctest --verbose
 
+  format:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install clang-format
+      run: |
+        sudo apt-get install -y clang-format
+
+    - name: Run clang-format
+      run: |
+        clang-format --version
+        find include src tests \(  -name "*.cc" -o -name "*.h" \) -exec clang-format -i {} \;
+        git update-index --really-refresh
+        git --no-pager diff

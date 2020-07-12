@@ -4,10 +4,6 @@ language: cpp
 compiler:
   - gcc
   - clang
-addons:
-  apt:
-    packages:
-    - clang-format-8
 
 # Always test things that aren't pushes (like PRs)
 # or test master or test tagged releases on push (with versioning)
@@ -17,9 +13,6 @@ matrix:
     fast_finish: true
 
 script:
-  - find include src tests \(  -name "*.cc" -o -name "*.h" \) -exec clang-format-8 -i {} \;
-  - git update-index --really-refresh
-  - git --no-pager diff
   - mkdir -p build
   - cd build
   - cmake ..
