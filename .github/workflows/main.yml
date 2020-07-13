@@ -19,6 +19,16 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Set Environment
+      run: |
+        if [ "${{ matrix.compiler }}" = "gcc" ]; then
+          echo "::set-env name=CC::gcc"
+          echo "::set-env name=CXX::g++"
+        else
+          echo "::set-env name=CC::clang"
+          echo "::set-env name=CXX::clang++"
+        fi
+
     - name: Install Tools (macOS)
       if: runner.os == 'macOS'
       run: |
@@ -27,7 +37,9 @@ jobs:
         fi
 
         if [ "${{ matrix.compiler }}" = "gcc" ]; then
-          brew install gcc
+          brew install gcc@9
+          echo "::set-env name=CC::/usr/local/bin/gcc-9"
+          echo "::set-env name=CXX::/usr/local/bin/g++-9"
         fi
 
     - name: Setup Bazel
@@ -53,23 +65,7 @@ jobs:
 
         cat .bazelrc.ci >> .bazelrc
 
-    - name: Set Environment
-      run: |
-        if [ "${{ matrix.build_tool }}" = "cmake" ]; then
-          if [ "${{ matrix.compiler }}" = "gcc" ]; then
-            echo "::set-env name=CC::gcc"
-            echo "::set-env name=CXX::g++"
-          else
-            echo "::set-env name=CC::clang"
-            echo "::set-env name=CXX::clang++"
-          fi
-        else
-          if [ "${{ matrix.compiler }}" = "gcc" ]; then
-            echo "::set-env name=CC::g++"
-          else
-            echo "::set-env name=CC::clang++"
-          fi
-        fi
+        echo "::set-env name=CXX::$CC"
 
     - name: Checkout Submodules
       run: |

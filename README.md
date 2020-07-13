@@ -8,7 +8,7 @@ This project requires a compiler supporting C++17 and uses
 communication and [json](https://github.com/nlohmann/json) is used to encode to
 JSON. [Google Test](https://github.com/google/googletest) is used for testing.
 
-It has been tested with GCC 7 and Clang 7 on Ubuntu 18.04
+It has been tested with GCC 7 and Clang 9 on Ubuntu 18.04 and GCC 9 and AppleClang 11 on macOS 10.15.
 
 ### With CMake
 
@@ -43,7 +43,8 @@ oliver@canopus:~/repos/recorder$ bazel test //...
 
 ## Usage
 Here's a simple usage example.
-*If building with `bazel`, binaries can be found in the `bazel-bin` directory.*
+
+If building with `bazel`, binaries can be found in the `bazel-bin` directory.
 
 Start the log server first
 ```

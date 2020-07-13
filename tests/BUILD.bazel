@@ -1,4 +1,5 @@
 load("@generated_compiler_config//:variables.bzl", "RECORDER_DEFAULT_COPTS")
+load("@generated_compiler_config//:variables.bzl", "MACOS_LIBFS")
 
 config_setting(
     name = "macOS",
@@ -25,7 +26,7 @@ cc_test(
     ],
     data = ["//tests:data/testdata.log"],
     linkopts = select({
-        "macOS" : [],
+        "macOS" : MACOS_LIBFS,
         "Linux" : ["-lstdc++fs"],
     }),
 )
