@@ -131,14 +131,13 @@ class Connection : public std::enable_shared_from_this<Connection<AsyncReadSocke
                     }
                     conn->streambuf_.commit(bytes_transferred);
 
-                    auto message = [](auto buffer) noexcept->expected_type {
+                    auto message = [](auto buffer) noexcept -> expected_type {
                         try {
                             return reader::Message{buffer};
                         } catch (...) {
                             return nonstd::make_unexpected(std::current_exception());
                         }
-                    }
-                    (conn->streambuf_.data());
+                    }(conn->streambuf_.data());
                     conn->streambuf_.consume(conn->streambuf_.size());
                     self.complete(error, std::move(message));
                 }
