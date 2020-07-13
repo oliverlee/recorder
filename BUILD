@@ -1,10 +1,11 @@
-load("//:variables.bzl", "RECORDER_COPTS")
+load(":variables.bzl", "COMMON_CXX_WARN_OPTS")
+RECORDER_DEFAULT_COPTS = ["-Iinclude"] + COMMON_CXX_WARN_OPTS
 
 cc_library(
     name = "recorder",
     srcs = ["src/message.cc"],
     hdrs = glob(["include/**/*.h"]),
-    copts = RECORDER_COPTS,
+    copts = RECORDER_DEFAULT_COPTS,
     deps = [
         "@external//:asio",
         "@external//:expected-lite",
@@ -16,13 +17,13 @@ cc_library(
 cc_binary(
     name = "reader",
     srcs = ["src/reader.cc"],
-    copts = RECORDER_COPTS,
+    copts = RECORDER_DEFAULT_COPTS,
     deps = [":recorder"],
 )
 
 cc_binary(
     name = "logger",
     srcs = ["src/logger.cc"],
-    copts = RECORDER_COPTS,
+    copts = RECORDER_DEFAULT_COPTS,
     deps = [":recorder"],
 )

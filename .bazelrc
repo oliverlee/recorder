@@ -1,11 +1,11 @@
-build \
---cxxopt='-std=c++17' \
---verbose_failures  \
---show_result='10'
+build --cxxopt='-std=c++17'
+build --verbose_failures
+build --show_result='10'
+build --action_env=CC
+build --action_env=CXX
 
-test \
---keep_going  \
---build_tests_only  \
---test_output=errors \
---test_summary=detailed  \
---action_env='GTEST_COLOR=1'
+test --keep_going
+test --build_tests_only
+test --test_output=errors
+test --test_summary=detailed
+test --action_env='GTEST_COLOR=1'
