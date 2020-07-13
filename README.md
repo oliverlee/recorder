@@ -15,14 +15,14 @@ It has been tested with GCC 7 and Clang 7 on Ubuntu 18.04
 To build
 ```
 oliver@canopus:~/repos/recorder$ git submodule update --init --recursive --recommend-shallow
-oliver@canopus:~/repos/recorder$ cmake -S . -B build-cmake
-oliver@canopus:~/repos/recorder$ cmake --build build-cmake
+oliver@canopus:~/repos/recorder$ cmake -S . -B build
+oliver@canopus:~/repos/recorder$ cmake --build build
 ```
 
 To run tests
 ```
-oliver@canopus:~/repos/recorder$ cd build-cmake
-oliver@canopus:~/repos/recorder/build-cmake$ GTEST_COLOR=1 ctest -V
+oliver@canopus:~/repos/recorder$ cd build
+oliver@canopus:~/repos/recorder/build$ GTEST_COLOR=1 ctest -V
 ```
 
 ### With Bazel
@@ -47,12 +47,12 @@ Here's a simple usage example.
 
 Start the log server first
 ```
-oliver@canopus:~/repos/recorder$ ./build-cmake/bin/logger 12345
+oliver@canopus:~/repos/recorder$ ./build/bin/logger 12345
 ```
 
 Connect to the log server with a reader client
 ```
-oliver@canopus:~/repos/recorder$ <sensor-simulator-bin> | ./build-cmake/bin/reader localhost 12345
+oliver@canopus:~/repos/recorder$ <sensor-simulator-bin> | ./build/bin/reader localhost 12345
 ```
 The sensor data is piped to the reader client, which then forwards data to the
 remote log server.
@@ -62,7 +62,7 @@ messages are also displayed when clients connect or disconnect.
 
 Here's an example of logger output with two connections:
 ```
-oliver@canopus:~/repos/recorder$ ./build-cmake/bin/logger 12345
+oliver@canopus:~/repos/recorder$ ./build/bin/logger 12345
 Starting logger on port 12345
 [127.0.0.1:56184] Established connection
 {
@@ -114,7 +114,7 @@ Starting logger on port 12345
 
 To log to a file, redirect the output of the logger:
 ```
-oliver@canopus:~/repos/recorder$ ./build-cmake/bin/logger 12345 > sensor.log
+oliver@canopus:~/repos/recorder$ ./build/bin/logger 12345 > sensor.log
 ```
 Note that status messages are written to stderr.
 
