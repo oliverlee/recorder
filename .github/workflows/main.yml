@@ -55,12 +55,20 @@ jobs:
 
     - name: Set Environment
       run: |
-        if [ "${{ matrix.compiler }}" = "gcc" ]; then
-          echo "::set-env name=CC::gcc"
-          echo "::set-env name=CXX::g++"
+        if [ "${{ matrix.build_tool }}" = "cmake" ]; then
+          if [ "${{ matrix.compiler }}" = "gcc" ]; then
+            echo "::set-env name=CC::gcc"
+            echo "::set-env name=CXX::g++"
+          else
+            echo "::set-env name=CC::clang"
+            echo "::set-env name=CXX::clang++"
+          fi
         else
-          echo "::set-env name=CC::clang"
-          echo "::set-env name=CXX::clang++"
+          if [ "${{ matrix.compiler }}" = "gcc" ]; then
+            echo "::set-env name=CC::g++"
+          else
+            echo "::set-env name=CC::clang++"
+          fi
         fi
 
     - name: Checkout Submodules

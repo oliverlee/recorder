@@ -1,5 +1,4 @@
-load(":variables.bzl", "COMMON_CXX_WARN_OPTS")
-RECORDER_DEFAULT_COPTS = ["-Iinclude"] + COMMON_CXX_WARN_OPTS
+load("@generated_compiler_config//:variables.bzl", "RECORDER_DEFAULT_COPTS")
 
 cc_library(
     name = "recorder",

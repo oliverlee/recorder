@@ -2,7 +2,7 @@ build --cxxopt='-std=c++17'
 build --verbose_failures
 build --show_result='10'
 build --action_env=CC
-build --action_env=CXX
+build --action_env='BAZEL_USE_CPP_ONLY_TOOLCHAIN=1'
 
 test --keep_going
 test --build_tests_only
