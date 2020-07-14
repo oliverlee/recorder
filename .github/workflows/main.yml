@@ -45,7 +45,7 @@ jobs:
     - name: Setup Bazel
       if: matrix.build_tool == 'bazel'
       env:
-          BAZEL_VERSION: "3.3.1"
+          BAZEL_VERSION: "3.4.1"
       run: |
         if [[ "${{ matrix.os }}" == "macOS-latest" ]]; then
           OS=darwin
