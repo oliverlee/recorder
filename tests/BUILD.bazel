@@ -1,5 +1,8 @@
-load("@generated_compiler_config//:variables.bzl", "RECORDER_DEFAULT_COPTS")
-load("@generated_compiler_config//:variables.bzl", "MACOS_LIBFS")
+load(
+    "@generated_compiler_config//:variables.bzl",
+     "RECORDER_DEFAULT_COPTS",
+     "MACOS_LIBFS"
+)
 
 config_setting(
     name = "macOS",

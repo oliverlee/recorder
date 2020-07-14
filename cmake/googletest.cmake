@@ -15,6 +15,8 @@ else()
     set(libfs stdc++fs)
 endif()
 
+add_custom_target(build-unit-tests ALL)
+
 macro(package_add_test testname)
     add_executable(${testname} ${ARGN})
 
@@ -36,4 +38,6 @@ macro(package_add_test testname)
         ${libfs}
         gtest
         gtest_main)
+
+    add_dependencies(build-unit-tests ${testname})
 endmacro()
