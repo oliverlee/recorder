@@ -99,6 +99,8 @@ if (BUILD_COVERAGE)
         -fno-inline
         -fno-inline-small-functions
         -fno-default-inline
+        -fno-elide-constructors
+        -fkeep-inline-functions
   )
 endif()
 

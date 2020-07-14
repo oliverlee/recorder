@@ -15,3 +15,9 @@ coverage --instrumentation_filter=''
 coverage --javabase=@bazel_tools//tools/jdk:remote_jdk11
 coverage --combined_report=lcov
 coverage --coverage_report_generator=@bazel_tools//tools/test/CoverageOutputGenerator/java/com/google/devtools/coverageoutputgenerator:Main
+
+coverage --cxxopt='-fno-inline'
+coverage --cxxopt='-fno-inline-small-functions'
+coverage --cxxopt='-fno-default-inline'
+coverage --cxxopt='-fno-elide-constructors'
+coverage --cxxopt='-fkeep-inline-functions'
