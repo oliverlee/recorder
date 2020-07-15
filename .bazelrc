@@ -21,3 +21,5 @@ coverage --cxxopt='-fno-inline-small-functions'
 coverage --cxxopt='-fno-default-inline'
 coverage --cxxopt='-fno-elide-constructors'
 coverage --cxxopt='-fkeep-inline-functions'
+
+try-import %workspace%/user.bazelrc

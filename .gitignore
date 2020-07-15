@@ -3,3 +3,6 @@
 
 # Bazel directories
 /bazel-*
+
+# User bazelrc file
+/user.bazelrc
