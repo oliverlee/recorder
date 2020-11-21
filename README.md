@@ -41,6 +41,9 @@ To run tests
 oliver@canopus:~/repos/recorder$ bazel test //...
 ```
 
+User specified Bazel configuration settings will be loaded from `user.bazelrc`.
+This file is ignored by Git.
+
 ## Usage
 Here's a simple usage example.
 

@@ -51,6 +51,7 @@ endif()
 
 # Show this in ccmake
 option(BUILD_TESTS "Build tests" ON)
+option(BUILD_COVERAGE "Build coverage" OFF)
 
 if(BUILD_TESTS)
     include(cmake/googletest.cmake)
@@ -75,4 +76,32 @@ set(RECORDER_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 find_package(Threads)
 
 add_subdirectory(src)
+
+if (BUILD_COVERAGE)
+  include(cmake/CodeCoverage.cmake)
+
+  append_coverage_compiler_flags()
+
+  setup_target_for_coverage_lcov(
+    NAME coverage
+    EXECUTABLE ctest -j ${n_cores}
+    EXCLUDE
+        "${PROJECT_SOURCE_DIR}/external/*"
+        "${PROJECT_SOURCE_DIR}/tests/*"
+        "/Applications/*"
+        "/usr/local/Cellar/*"
+    BASE_DIRECTORY ${PROJECT_SOURCE_DIR}
+    DEPENDENCIES
+        build-unit-tests
+  )
+
+  set(DEFAULT_CXX_OPTIONS ${DEFAULT_CXX_OPTIONS}
+        -fno-inline
+        -fno-inline-small-functions
+        -fno-default-inline
+        -fno-elide-constructors
+        -fkeep-inline-functions
+  )
+endif()
+
 add_subdirectory(tests)

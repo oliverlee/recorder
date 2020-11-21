@@ -8,6 +8,8 @@ on:
 
 jobs:
   test:
+    env:
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
     strategy:
       fail-fast: false
       matrix:
@@ -45,7 +47,7 @@ jobs:
     - name: Setup Bazel
       if: matrix.build_tool == 'bazel'
       env:
-          BAZEL_VERSION: "3.3.1"
+          BAZEL_VERSION: "3.4.1"
       run: |
         if [[ "${{ matrix.os }}" == "macOS-latest" ]]; then
           OS=darwin
@@ -99,3 +101,51 @@ jobs:
         find include src tests \(  -name "*.cc" -o -name "*.h" \) -exec clang-format -i {} \;
         git update-index --really-refresh
         git --no-pager diff
+
+  coverage:
+    env:
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup Bazel
+      env:
+          BAZEL_VERSION: "3.4.1"
+      run: |
+        sysctl kernel.unprivileged_userns_clone=1
+        sudo apt-get update -q
+        sudo apt-get install libxml2-utils -y
+        OS=linux
+
+        URL="https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel-${BAZEL_VERSION}-installer-${OS}-x86_64.sh"
+
+        wget -O install.sh "${URL}"
+        chmod +x install.sh
+        ./install.sh --user
+        rm -f install.sh
+
+        cat .bazelrc.ci >> .bazelrc
+
+        echo "::set-env name=CXX::$CC"
+
+    - name: Checkout Submodules
+      run: |
+        git submodule update --init --recursive --recommend-shallow
+
+    - name: Build coverage report
+      run: |
+        bazel coverage //...
+
+    - name: Install lcov
+      run: |
+        sudo apt-get install -y lcov
+
+    - name: Print coverage summary
+      run: |
+        lcov --list bazel-out/_coverage/_coverage_report.dat
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: coverage-report
+        path: bazel-out/_coverage/_coverage_report.dat
