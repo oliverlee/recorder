@@ -8,6 +8,8 @@ on:
 
 jobs:
   test:
+    env:
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
     strategy:
       fail-fast: false
       matrix:
@@ -101,6 +103,8 @@ jobs:
         git --no-pager diff
 
   coverage:
+    env:
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
