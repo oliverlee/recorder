@@ -146,11 +146,11 @@ void to_json(nlohmann::json& j, const Message& message) {
         {"name", message.name()},
     };
 
-    if (const auto t = message.temperature(); t) {
+    if (const auto t = message.temperature()) {
         j["temperature"] = *t;
     }
 
-    if (const auto h = message.humidity(); h) {
+    if (const auto h = message.humidity()) {
         j["humidity"] = *h;
     }
 }
